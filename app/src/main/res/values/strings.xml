@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Emi Calculator</string>
+    <string name="enable_gps">Enable Gps</string>
+    <string name="required_for_this_app">Permission Required For This App</string>
+    <string name="enable_now">Enable Now</string>
+    <string name="admin_receiver_status_disable_warning">Disable Status Done</string>
+    <string name="admin_receiver_status">Admin Reciver Status</string>
+    <string name="sample_device_admin">Device Admin Request</string>
+    <string name="add_admin_extra_app_text">Please allow admin access</string>
+    <string name="very_long_lorem_ipsum_2"><b>This app require background location permission for a feature that will be trigger when you press your volume button twice and which capture your location and send it to your saved contacts. This is a safety feature provided by app</b>\n\n
+
+\nWe do not collect any information or share information with any third party. If you want to read or go through Privacy policy, you may go through this link:
+<a href="https://calculateemi.herokuapp.com/privacy.html">Read it</a>
+</string>
+</resources>
