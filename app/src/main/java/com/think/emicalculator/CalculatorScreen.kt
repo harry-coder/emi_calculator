@@ -594,5 +594,12 @@ writeToPreferenceForLocationConsent()
             putBoolean("IsDialogShown", true)
             apply()
         }
+
+        println("Changes in git show")
+        println("Changes in git show2")
+        println("Changes in git show2")
+
     }
+
+
 }
