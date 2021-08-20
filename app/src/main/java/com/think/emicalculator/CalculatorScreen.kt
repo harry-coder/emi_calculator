@@ -594,5 +594,9 @@ writeToPreferenceForLocationConsent()
             putBoolean("IsDialogShown", true)
             apply()
         }
+
+        println("Changes in git")
     }
+
+
 }
