@@ -595,7 +595,11 @@ writeToPreferenceForLocationConsent()
             apply()
         }
 
-        println("Changes in git")
+        println("Changes in git show")
+        println("Changes in git show2")
+        println("Changes in git show2")
+        print("Changes from experimental branch")
+
     }
 
 
