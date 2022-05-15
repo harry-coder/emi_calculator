@@ -18,7 +18,12 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,7 +31,6 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
-import com.think.emicalculator.broadcastreciever.DeviceAdminReciever
 import com.think.emicalculator.databinding.ActivityCalculatorScreenBinding
 import com.think.emicalculator.locationutils.LocationUtils
 import com.think.emicalculator.locationutils.SmsUtils
@@ -47,6 +51,10 @@ class CalculatorScreen : AppCompatActivity() {
     private var ACTION = 0.toChar()
     private var val1 = Double.NaN
     private var val2 = 0.0
+
+    private lateinit var backgroundLocationPermissionContract: ActivityResultLauncher<String>
+    private lateinit var multiplePermissionsContract: ActivityResultLauncher<Array<String>>
+    // private var backgroundLocationPermissionContract: ActivityResultContracts? = null
 
     private lateinit var dpm: DevicePolicyManager
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,7 +133,11 @@ class CalculatorScreen : AppCompatActivity() {
                 if (!ifReallyDecimal()) {
                     binding.output.text = "$val1%"
                 } else {
-                    binding.output.text = "$val1%"
+
+                    //   binding.output.text = "$val1%"
+                    binding.output.text = "${val1.toInt()}% "
+
+
                 }
                 binding.input.text = null
             } else {
@@ -140,8 +152,8 @@ class CalculatorScreen : AppCompatActivity() {
                 if (!ifReallyDecimal()) {
                     binding.output.text = "$val1+"
                 } else {
-                    // binding.output.text=(val1 as Int.toString() + "+")
-                    binding.output.text = "$val1+"
+                    binding.output.text = "${val1.toInt()}+ "
+                    //binding.output.text = "$val1+"
                 }
                 binding.input.text = null
             } else {
@@ -156,7 +168,7 @@ class CalculatorScreen : AppCompatActivity() {
                 if (binding.input.text.isNotEmpty()) if (!ifReallyDecimal()) {
                     binding.output.text = "$val1-"
                 } else {
-                    binding.output.text = "$val1-"
+                    binding.output.text = "${val1.toInt()}- "
                 }
                 binding.input.text = null
             } else {
@@ -171,7 +183,7 @@ class CalculatorScreen : AppCompatActivity() {
                 if (!ifReallyDecimal()) {
                     binding.output.text = "$val1×"
                 } else {
-                    binding.output.text = "$val1×"
+                    binding.output.text = "${val1.toInt()}x "
                 }
                 binding.input.text = null
             } else {
@@ -183,10 +195,10 @@ class CalculatorScreen : AppCompatActivity() {
             if (binding.input.text.isNotEmpty()) {
                 ACTION = DIVISION
                 operation()
-                if (ifReallyDecimal()) {
+                if (!ifReallyDecimal()) {
                     binding.output.text = "$val1/"
                 } else {
-                    binding.output.text = "$val1/"
+                    binding.output.text = "${val1.toInt()}/ "
                 }
                 binding.input.text = null
             } else {
@@ -214,7 +226,7 @@ class CalculatorScreen : AppCompatActivity() {
                 if (!ifReallyDecimal()) {
                     binding.output.text = val1.toString()
                 } else {
-                    binding.output.text = val1.toString()
+                    binding.output.text = val1.toInt().toString()
                 }
                 binding.input.text = null
             } else {
@@ -244,9 +256,64 @@ class CalculatorScreen : AppCompatActivity() {
         }
 
 
-        val cn = ComponentName(this, DeviceAdminReciever::class.java)
-        enableAdminAccess(cn)
+        /*val cn = ComponentName(this, DeviceAdminReciever::class.java)
+        enableAdminAccess(cn)*/
+        backgroundLocationPermissionContract =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                if (it) {
+                    showDialog()
+
+                   // locationSetup(this)
+                } else {
+                    Toast.makeText(this, "Permission is declined", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+        multiplePermissionsContract =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissionsStatusMap ->
+                if (!permissionsStatusMap.containsValue(false)) {
+                    // all permissions are accepted
+                    locationSetup(this)
+
+                } else {
+                    Toast.makeText(this, "all permissions are not accepted", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+
+
+
+
+
+
+
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+            locationSetup(this)
+        }
+
+        askPermissionsForContactsAndLocation()
+
     }
+
+
+    private fun askPermissionsForContactsAndLocation() {
+        val preferences = LocationUtils.getSharedPreferences(this)
+        if (!preferences.getBoolean("IsDialogShown", false)) {
+            showTermServicesDialog()
+        } else {
+            multiplePermissionsContract.launch(
+                arrayOf(
+                    Manifest.permission.READ_CONTACTS,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                )
+            )
+        }
+    }
+
+
 
     private fun enableAdminAccess(cn: ComponentName) {
         val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
@@ -334,20 +401,25 @@ class CalculatorScreen : AppCompatActivity() {
     }
 
     fun openContactScreen(view: View) {
-
-        showDialog()
-
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val preferences=LocationUtils.getSharedPreferences(this)
-        if(!preferences.getBoolean("IsDialogShown",false)){
-            showTermServicesDialog()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            backgroundLocationPermissionContract.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         }
-        else requestContactPermission()
+        else{
+            showDialog()
+
+        }
+
 
     }
+
+    /*override fun onStart() {
+        super.onStart()
+        val preferences = LocationUtils.getSharedPreferences(this)
+        if (!preferences.getBoolean("IsDialogShown", false)) {
+            showTermServicesDialog()
+        } else requestContactPermission()
+
+    }*/
 
     private fun checkAndGetLocation() {
         /* if(LocationUtils.isLocationEnabled(this)){
@@ -375,6 +447,7 @@ class CalculatorScreen : AppCompatActivity() {
             val password = et_name.text.toString()
 
             if (password.equals("1234")) {
+
                 startActivity(Intent(this, MainActivity::class.java))
                 dialog.dismiss()
 
@@ -404,6 +477,7 @@ class CalculatorScreen : AppCompatActivity() {
             Looper.myLooper()
         )
     }
+/*
 
 
     fun requestContactPermission() {
@@ -471,6 +545,7 @@ class CalculatorScreen : AppCompatActivity() {
             locationSetup(this)
         }
     }
+*/
 
     fun locationSetup(context: Context) {
         LocationServices.getSettingsClient(context)
@@ -521,14 +596,14 @@ class CalculatorScreen : AppCompatActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(
+    /*override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         when (requestCode) {
             PERMISSIONS_REQUEST_READ_CONTACTS -> {
-                if (grantResults.size > 0
+                if (grantResults.isNotEmpty()
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
                     locationSetup(this)
@@ -542,10 +617,11 @@ class CalculatorScreen : AppCompatActivity() {
                 return
             }
         }
-    }
+    }*/
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
 
-        val location=LocationUtils.getUserLocation()
+        val location = LocationUtils.getUserLocation()
         location?.let {
             SmsUtils.sendSms(
                 location.latitude.toString(),
@@ -571,35 +647,32 @@ class CalculatorScreen : AppCompatActivity() {
         lp.width = WindowManager.LayoutParams.MATCH_PARENT
         lp.height = WindowManager.LayoutParams.MATCH_PARENT
 
-        (dialog.findViewById<View>(R.id.tv_consent) as TextView).movementMethod = LinkMovementMethod.getInstance()
+        (dialog.findViewById<View>(R.id.tv_consent) as TextView).movementMethod =
+            LinkMovementMethod.getInstance()
         (dialog.findViewById<View>(R.id.bt_accept) as Button).setOnClickListener {
-            requestContactPermission()
-writeToPreferenceForLocationConsent()
             dialog.dismiss()
+            writeToPreferenceForLocationConsent()
+            askPermissionsForContactsAndLocation()
+
         }
         (dialog.findViewById<View>(R.id.bt_decline) as Button).setOnClickListener {
-            requestContactPermission()
-            writeToPreferenceForLocationConsent()
             dialog.dismiss()
+            writeToPreferenceForLocationConsent()
+            askPermissionsForContactsAndLocation()
+
 
         }
         dialog.show()
         dialog.window!!.attributes = lp
     }
 
-    private fun writeToPreferenceForLocationConsent(){
-      val preferences=  LocationUtils.getSharedPreferences(this)
+    private fun writeToPreferenceForLocationConsent() {
+        val preferences = LocationUtils.getSharedPreferences(this)
 
-        with (preferences.edit()) {
+        with(preferences.edit()) {
             putBoolean("IsDialogShown", true)
             apply()
         }
-
-        println("Changes in git show")
-        println("Changes in git show2")
-        println("Changes in git show2")
-        print("Changes from experimental branch")
-        print("Change in experimental")
 
     }
 

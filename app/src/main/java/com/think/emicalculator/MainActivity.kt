@@ -105,7 +105,6 @@ class MainActivity : AppCompatActivity() {
             .toString() + "/" + binding.etFileNumber.text + ".csv"
         val file = File(path)
 
-
         var beanWriter: ICsvBeanWriter? = null
         try {
             beanWriter = CsvBeanWriter(
@@ -173,36 +172,28 @@ class MainActivity : AppCompatActivity() {
                                 .show()
                         }
                     })
-                .addOnFailureListener(object : OnFailureListener {
-                    override fun onFailure(@NonNull e: Exception) {
+                .addOnFailureListener { e -> // Error, Image not uploaded
+                    progressDialog.dismiss()
+                    Toast
+                        .makeText(
+                            this@MainActivity,
+                            "Failed " + e.message,
+                            Toast.LENGTH_SHORT
+                        )
+                        .show()
+                }
+                .addOnProgressListener { taskSnapshot ->
 
-                        // Error, Image not uploaded
-                        progressDialog.dismiss()
-                        Toast
-                            .makeText(
-                                this@MainActivity,
-                                "Failed " + e.message,
-                                Toast.LENGTH_SHORT
-                            )
-                            .show()
-                    }
-                })
-                .addOnProgressListener(
-                    object : OnProgressListener<UploadTask.TaskSnapshot?> {
-                        // Progress Listener for loading
-                        // percentage on the dialog box
-                        override fun onProgress(
-                            taskSnapshot: UploadTask.TaskSnapshot
-                        ) {
-                            val progress: Double = ((100.0
-                                    * taskSnapshot.getBytesTransferred()
-                                    / taskSnapshot.getTotalByteCount()))
-                            progressDialog.setMessage(
-                                ("Uploaded "
-                                        + progress.toInt() + "%")
-                            )
-                        }
-                    })
+                    // Progress Listener for loading
+                    // percentage on the dialog box
+                    val progress: Double = ((100.0
+                            * taskSnapshot.getBytesTransferred()
+                            / taskSnapshot.getTotalByteCount()))
+                    progressDialog.setMessage(
+                        ("Uploaded "
+                                + progress.toInt() + "%")
+                    )
+                }
         }
     }
 

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Emi Calculator</string>
+    <string name="app_name">Calculator</string>
     <string name="enable_gps">Enable Gps</string>
     <string name="required_for_this_app">Permission Required For This App</string>
     <string name="enable_now">Enable Now</string>
