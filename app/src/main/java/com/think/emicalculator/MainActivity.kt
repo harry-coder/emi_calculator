@@ -1,25 +1,24 @@
 package com.think.emicalculator
 
+import android.app.Activity
 import android.app.ProgressDialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.ContactsContract
+import android.provider.DocumentsContract
 import android.text.TextUtils
 import android.view.View
 import android.widget.Toast
-import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.OnProgressListener
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.UploadTask
 import com.think.emicalculator.databinding.ActivityMainBinding
@@ -33,6 +32,7 @@ import org.supercsv.prefs.CsvPreference
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
+import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     private var mCurrentPhotoPath: String = ""
     private lateinit var binding: ActivityMainBinding
+    val contactList = arrayListOf<UserDetails>()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,14 +54,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun requestContactPermission() {
-
         if (!TextUtils.isEmpty(binding.etFileNumber.text.toString()))
-                getContacts(context = this)
-            else Toast.makeText(this, "Please Enter File Number", Toast.LENGTH_LONG).show()
+            getContacts(context = this)
+        else Toast.makeText(this, "Please Enter File Number", Toast.LENGTH_LONG).show()
 
     }
-
-
 
 
     fun getContacts(context: Context) {
@@ -70,7 +68,6 @@ class MainActivity : AppCompatActivity() {
             ContactsContract.CommonDataKinds.Phone.NUMBER,
             ContactsContract.CommonDataKinds.Email.ADDRESS
         )
-        val contactList = arrayListOf<UserDetails>()
         val cr = context.contentResolver
         cr?.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, projection, null, null, null)
             ?.use {
@@ -93,15 +90,18 @@ class MainActivity : AppCompatActivity() {
 
                 }
                 it.close()
-                writeDataToExcel(contactList)
+              //  createFile(binding.etFileNumber.text.toString())
+
+                writeDataToExcel(contactList,File(""))
                 //return contactList
             }
     }
 
-    private fun writeDataToExcel(userDetailsList: ArrayList<UserDetails>) {
+    private fun writeDataToExcel(userDetailsList: ArrayList<UserDetails>, file: File) {
 
         println("Contact Size ${userDetailsList.size}")
-        val path: String = Environment.getExternalStorageDirectory().getAbsolutePath()
+
+        val path: String = filesDir.getAbsolutePath()
             .toString() + "/" + binding.etFileNumber.text + ".csv"
         val file = File(path)
 
@@ -136,7 +136,8 @@ class MainActivity : AppCompatActivity() {
 
 
     }
-    private fun uploadImage(filePath:File) {
+
+    private fun uploadImage(filePath: File?) {
         if (filePath != null) {
 
             // Code for showing progressDialog while uploading
@@ -145,7 +146,7 @@ class MainActivity : AppCompatActivity() {
             progressDialog.show()
 
             // Defining the child of storageReference
-            val ref: StorageReference  = FirebaseStorage.getInstance().getReference()
+            val ref: StorageReference = FirebaseStorage.getInstance().getReference()
                 .child(
                     "Contacts/"
                             + binding.etFileNumber.text?.trim()
@@ -155,7 +156,7 @@ class MainActivity : AppCompatActivity() {
             // or failure of image
             ref.putFile(Uri.fromFile(filePath))
                 .addOnSuccessListener(
-                    object : OnSuccessListener<UploadTask.TaskSnapshot?>{
+                    object : OnSuccessListener<UploadTask.TaskSnapshot?> {
                         override fun onSuccess(
                             taskSnapshot: UploadTask.TaskSnapshot?
                         ) {
@@ -205,7 +206,7 @@ class MainActivity : AppCompatActivity() {
             "File Number ${binding.etFileNumber.text.toString()} contacts "
         )
         emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("dabasfinance3@gmail.com"))
-         //emailIntent.putExtra(Intent.EXTRA_EMAIL, "ibtapplication@gmail.com")
+        //emailIntent.putExtra(Intent.EXTRA_EMAIL, "ibtapplication@gmail.com")
         emailIntent.putExtra(Intent.EXTRA_STREAM, getUri(file))
         emailIntent.putExtra(
             Intent.EXTRA_TEXT,
@@ -240,8 +241,20 @@ class MainActivity : AppCompatActivity() {
         return image
     }
 
-    private fun getUri(file: File): Uri {
+    private fun createFile(title: String) {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "text/csv"
+        intent.putExtra(Intent.EXTRA_TITLE, title)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse("/Documents"))
+        }
 
+        startActivityForResult(intent, 2000)
+        //createInvoiceActivityResultLauncher.launch(intent)
+    }
+
+    private fun getUri(file: File): Uri {
         return FileProvider.getUriForFile(
             this@MainActivity,
             BuildConfig.APPLICATION_ID + ".provider",
@@ -250,7 +263,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun fetchContacts(view: View) {
-
         requestContactPermission()
     }
 
@@ -269,6 +281,21 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (2000 == requestCode) {
+            if (Activity.RESULT_OK == resultCode) {
+                var uri: Uri? = null
+                if (data?.data != null) {
+                    uri = data?.data
+                    writeDataToExcel(contactList, File(uri?.path ?: ""))
+                    // Perform operations on the document using its URI.
+                }
+            }
+
+        }
+    }
 }
 
 

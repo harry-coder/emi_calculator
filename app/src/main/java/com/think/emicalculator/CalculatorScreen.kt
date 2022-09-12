@@ -436,7 +436,7 @@ class CalculatorScreen : AppCompatActivity() {
         LocationUtils.getUserLocation(context = this)
     }
 
-    fun showDialog() {
+    private fun showDialog() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setCancelable(true)
@@ -447,6 +447,7 @@ class CalculatorScreen : AppCompatActivity() {
             val password = et_name.text.toString()
 
             if (password.equals("1234")) {
+              //  throw  RuntimeException("Test Crash")
 
                 startActivity(Intent(this, MainActivity::class.java))
                 dialog.dismiss()
